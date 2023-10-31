@@ -1,0 +1,79 @@
+﻿@page "/"
+@inject HttpClient Http;
+@inject NotificationService Notice
+@using Microsoft.AspNetCore.Components;
+@using System.Net.Http.Json;
+@using System.Text.Json;
+@using AntDesign;
+
+<PageTitle>Index</PageTitle>
+
+<h1></h1>
+
+<div class="flex my-1">
+    <div class="justify-content-center">
+        <input type="text" class="put_on_post_code form-control my-1" placeholder="郵便番号" @bind="postalCode" @onblur="Search">
+        <input type="text" class="put_on_prefectures form-control my-1" placeholder="都道府県" @bind="prefecture">
+        <input type="text" class="put_on_municipalities form-control my-1" placeholder="市区町村" @bind="city">
+    </div>
+</div>
+
+@code {
+    private string postalCode;
+    private string prefecture;
+    private string city;
+
+    private async void Search() => await FetchAddress(postalCode, 1);
+
+    private async Task FetchAddress(string postalCode, int methodID)
+    {
+        try
+        {
+            // 郵便番号の妥当性チェック
+            if (postalCode.Length == 7 && int.TryParse(postalCode, out _))
+            {
+
+                string apiUrl = $"https://zipcloud.ibsnet.co.jp/api/search?zipcode={postalCode}";
+                // APIリクエストの送信
+                var response = await Http.GetAsync(apiUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // レスポンスの処理
+                    var data = await response.Content.ReadAsStringAsync();
+
+                    var addressInfo = JsonSerializer.Deserialize<AddressInfo>(data);
+
+                    // 取得した住所情報の表示
+                    var result = addressInfo.results[0];
+                    prefecture = result.address1;
+                    city = result.address2;
+                    // UIの更新
+                    StateHasChanged();
+                }
+                else
+                {
+                    await Notice.Error(new NotificationConfig()
+                    {
+                        Message = "住所検索に失敗しました。"
+                    });
+                }
+            }
+            else
+            {
+                // 無効な郵便番号フォーマット
+                await Notice.Error(new NotificationConfig()
+                {
+                    Message = "無効な郵便番号形式です。"
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Notice.Error(new NotificationConfig()
+                {
+                    Message = "住所検索中に例外が発生しました" + ex.Message
+                });
+        }
+    }
+}
