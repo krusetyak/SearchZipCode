@@ -6,9 +6,7 @@
 @using System.Text.Json;
 @using AntDesign;
 
-<PageTitle>Index</PageTitle>
-
-<h1></h1>
+<PageTitle>住所検索</PageTitle>
 
 <div class="flex my-1">
     <div class="justify-content-center">
@@ -21,7 +19,7 @@
 @code {
     private string postalCode;
     private string prefecture;
-    private string city;
+    private string? city;
 
     private async void Search() => await FetchAddress(postalCode, 1);
 
@@ -30,6 +28,7 @@
         try
         {
             // 郵便番号の妥当性チェック
+            if (postalCode == null) return;
             if (postalCode.Length == 7 && int.TryParse(postalCode, out _))
             {
 
@@ -71,9 +70,9 @@
         catch (Exception ex)
         {
             await Notice.Error(new NotificationConfig()
-                {
-                    Message = "住所検索中に例外が発生しました" + ex.Message
-                });
+            {
+                Message = "住所検索中に例外が発生しました" + ex.Message
+            });
         }
     }
 }
